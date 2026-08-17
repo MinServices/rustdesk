@@ -1251,7 +1251,8 @@ impl Connection {
         #[cfg(any(target_os = "windows", target_os = "macos"))]
         {
             rdev::set_mouse_extra_info(enigo::ENIGO_INPUT_EXTRA_VALUE);
-            rdev::set_keyboard_extra_info(enigo::ENIGO_INPUT_EXTRA_VALUE);
+            // Set keyboard extra info to 0 so remote IME (EVKey/UniKey) does not drop simulated keystrokes
+            rdev::set_keyboard_extra_info(0);
         }
         #[cfg(target_os = "macos")]
         reset_input_ondisconn();
