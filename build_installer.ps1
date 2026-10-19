@@ -16,7 +16,7 @@ Write-Host "=========================================" -ForegroundColor Cyan
 
 Push-Location "libs/portable"
 python -m pip install -q -r requirements.txt
-python ./generate.py -f "../../$releaseDir" -o . -e "$releaseDir/rustdesk.exe" -l 6
+python ./generate.py -f "../../$releaseDir" -o . -e "../../$releaseDir/rustdesk.exe" -l 6
 cargo build --locked --release
 Pop-Location
 
