@@ -51,7 +51,7 @@ cargo build --locked --release
 Pop-Location
 
 # Copy setup file to root directory
-$installerName = "rustdesk-1.5.3-setup.exe"
+$installerName = "rustdesk-1.5.4-setup.exe"
 if (Test-Path "target\release\rustdesk-portable-packer.exe") {
     Copy-Item "target\release\rustdesk-portable-packer.exe" -Destination $installerName -Force
     Copy-Item "target\release\rustdesk-portable-packer.exe" -Destination "rustdesk-setup.exe" -Force
