@@ -20,7 +20,7 @@ python ./generate.py -f "../../$releaseDir" -o . -e "../../$releaseDir/rustdesk.
 cargo build --locked --release
 Pop-Location
 
-$installerName = "rustdesk-1.5.4-setup.exe"
+$installerName = "rustdesk-1.5.5-setup.exe"
 if (Test-Path "target\release\rustdesk-portable-packer.exe") {
     Copy-Item "target\release\rustdesk-portable-packer.exe" -Destination $installerName -Force
     Copy-Item "target\release\rustdesk-portable-packer.exe" -Destination "rustdesk-setup.exe" -Force
