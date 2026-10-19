@@ -20,10 +20,13 @@ python ./generate.py -f "../../$releaseDir" -o . -e "../../$releaseDir/rustdesk.
 cargo build --locked --release
 Pop-Location
 
-$installerName = "rustdesk-1.5.5-setup.exe"
+$version = (Select-String -Path "Cargo.toml" -Pattern '^version\s*=\s*"([^"]+)"').Matches.Groups[1].Value
+$installerName = "rustdesk-$version-setup.exe"
 if (Test-Path "target\release\rustdesk-portable-packer.exe") {
     Copy-Item "target\release\rustdesk-portable-packer.exe" -Destination $installerName -Force
     Copy-Item "target\release\rustdesk-portable-packer.exe" -Destination "rustdesk-setup.exe" -Force
+    Write-Host "Generating update metadata and Ed25519 signature..." -ForegroundColor Cyan
+    python res/update/generate_update_metadata.py --version $version --release-id $version --exe $installerName --output-dir .
 }
 
 Write-Host "`n============================================================" -ForegroundColor Green

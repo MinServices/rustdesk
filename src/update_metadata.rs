@@ -27,14 +27,24 @@ const METADATA_SCHEMA_VERSION: u32 = 1;
 const SIGNATURE_SCHEMA_VERSION: u32 = 1;
 const SIGNATURE_ALGORITHM: &str = "ed25519";
 
-const TRUSTED_UPDATE_KEYS: &[TrustedUpdateKey] = &[TrustedUpdateKey {
-    key_id: "2026-ed25519-main",
-    algorithm: SIGNATURE_ALGORITHM,
-    public_key: [
-        118, 252, 116, 215, 49, 217, 220, 109, 145, 119, 210, 101, 225, 198, 63, 2, 41, 127, 197,
-        127, 52, 251, 6, 204, 125, 117, 96, 204, 187, 166, 85, 59,
-    ],
-}];
+const TRUSTED_UPDATE_KEYS: &[TrustedUpdateKey] = &[
+    TrustedUpdateKey {
+        key_id: "2026-ed25519-main",
+        algorithm: SIGNATURE_ALGORITHM,
+        public_key: [
+            118, 252, 116, 215, 49, 217, 220, 109, 145, 119, 210, 101, 225, 198, 63, 2, 41, 127, 197,
+            127, 52, 251, 6, 204, 125, 117, 96, 204, 187, 166, 85, 59,
+        ],
+    },
+    TrustedUpdateKey {
+        key_id: "min9802-ed25519-main",
+        algorithm: SIGNATURE_ALGORITHM,
+        public_key: [
+            1, 1, 199, 51, 3, 22, 9, 254, 190, 159, 214, 146, 23, 69, 129, 148, 158, 68, 245, 210,
+            65, 213, 85, 213, 109, 47, 194, 209, 178, 221, 46, 182,
+        ],
+    },
+];
 
 #[derive(Deserialize)]
 struct UpdateMetadata {
@@ -269,3 +279,52 @@ fn select_artifact<'a>(
 #[cfg(test)]
 #[path = "update_metadata_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+mod min9802_tests {
+    use super::*;
+
+    #[test]
+    fn test_min9802_key_verifies() {
+        let metadata_bytes = br#"{"schema_version":1,"app":"rustdesk","package_id":"rustdesk","version":"1.5.5","release_id":"1.5.5","published_at":"2026-10-19T18:00:30Z","signature_key_id":"min9802-ed25519-main","artifacts":[{"platform":"windows","arch":"x86_64","format":"exe","url":"https://github.com/Min9802/rustdesk/releases/download/1.5.5/rustdesk-1.5.5-setup.exe","file_name":"rustdesk-1.5.5-setup.exe","size":27124736,"sha256":"b86610752de4f693b827169181c0e4f9872fbffbaf8f536125af9e1a922b7368"}]}"#;
+        let signature_bytes = br#"{"schema_version":1,"algorithm":"ed25519","key_id":"min9802-ed25519-main","signature":"miB4DTRLy0VeW7Tv9SwaamFVjlcuwZwL5qmklxBpceg4JZti6oJMD8rmqhVk8yW1fBgrl7NhLxM9YQ3Vl4JLDg=="}"#;
+        let requirements = UpdateMetadataRequirements {
+            expected_version: "1.5.5",
+            expected_release_id: "1.5.5",
+            expected_artifact_url_prefix: "https://github.com/Min9802/rustdesk/releases/download/1.5.5/",
+            artifact: UpdateArtifactQuery {
+                platform: "windows",
+                arch: "x86_64",
+                format: "exe",
+            },
+        };
+        let verified = verify_update_metadata(metadata_bytes, signature_bytes, requirements).expect("verify failed");
+        assert_eq!(verified.version, "1.5.5");
+        assert_eq!(verified.url, "https://github.com/Min9802/rustdesk/releases/download/1.5.5/rustdesk-1.5.5-setup.exe");
+        assert_eq!(verified.sha256, "b86610752de4f693b827169181c0e4f9872fbffbaf8f536125af9e1a922b7368");
+        assert_eq!(verified.size, 27124736);
+    }
+
+    #[test]
+    fn test_live_github_release_artifact_verification() {
+        let query = UpdateArtifactQuery {
+            platform: "windows",
+            arch: "x86_64",
+            format: "exe",
+        };
+        let artifact = crate::updater::verified_update_artifact_for_release_page_url(
+            "https://github.com/Min9802/rustdesk/releases/tag/1.5.5",
+            query,
+        )
+        .expect("live verification failed");
+        assert_eq!(artifact.version, "1.5.5");
+        assert_eq!(
+            artifact.url,
+            "https://github.com/Min9802/rustdesk/releases/download/1.5.5/rustdesk-1.5.5-setup.exe"
+        );
+        let file = crate::updater::get_update_download_file_from_url(&artifact.url)
+            .expect("should allow Min9802 download file");
+        assert!(file.to_string_lossy().ends_with("rustdesk-1.5.5-setup.exe"));
+    }
+}
+

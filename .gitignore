@@ -13,6 +13,8 @@ src/version.rs
 *exe
 *tgz
 cert.pfx
+*.key
+rustdesk-update.json*
 *.bak
 *png
 *svg
