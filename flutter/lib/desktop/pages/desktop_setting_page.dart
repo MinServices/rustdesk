@@ -2548,6 +2548,57 @@ class _About extends StatefulWidget {
 }
 
 class _AboutState extends State<_About> {
+  bool _checkingUpdate = false;
+
+  @override
+  void dispose() {
+    platformFFI.unregisterEventHandler(
+        kCheckSoftwareUpdateFinish, 'manual_check_update');
+    super.dispose();
+  }
+
+  void _handleCheckUpdate() {
+    setState(() {
+      _checkingUpdate = true;
+    });
+
+    const eventKey = 'manual_check_update';
+    platformFFI.registerEventHandler(
+      kCheckSoftwareUpdateFinish,
+      eventKey,
+      (Map<String, dynamic> evt) async {
+        platformFFI.unregisterEventHandler(kCheckSoftwareUpdateFinish, eventKey);
+        if (mounted) {
+          setState(() {
+            _checkingUpdate = false;
+          });
+        }
+        final url = evt['url'] as String?;
+        final isError = evt.containsKey('error');
+        if (isError) {
+          showToast(translate('Failed to check for updates'));
+        } else if (url != null && url.isNotEmpty) {
+          stateGlobal.updateUrl.value = url;
+          showToast(translate('New version found'));
+        } else {
+          showToast(translate('Your software is up to date'));
+        }
+      },
+      replace: true,
+    );
+
+    bind.mainGetSoftwareUpdateUrl();
+
+    Timer(const Duration(seconds: 10), () {
+      if (mounted && _checkingUpdate) {
+        platformFFI.unregisterEventHandler(kCheckSoftwareUpdateFinish, eventKey);
+        setState(() {
+          _checkingUpdate = false;
+        });
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return futureBuilder(future: () async {
@@ -2580,9 +2631,30 @@ class _AboutState extends State<_About> {
               const SizedBox(
                 height: 8.0,
               ),
-              SelectionArea(
-                  child: Text('${translate('Version')}: $version')
-                      .marginSymmetric(vertical: 4.0)),
+              Row(
+                children: [
+                  SelectionArea(
+                      child: Text('${translate('Version')}: $version')
+                          .marginSymmetric(vertical: 4.0)),
+                  if (!isWeb) ...[
+                    const SizedBox(width: 16.0),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12.0, vertical: 8.0),
+                      ),
+                      onPressed: _checkingUpdate ? null : _handleCheckUpdate,
+                      child: _checkingUpdate
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(translate('Check for updates')),
+                    ),
+                  ],
+                ],
+              ),
               SelectionArea(
                   child: Text('${translate('Build Date')}: $buildDate')
                       .marginSymmetric(vertical: 4.0)),

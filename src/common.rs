@@ -1121,6 +1121,15 @@ pub fn process_software_update_url(response_url: String) -> ResultType<()> {
         }
         *SOFTWARE_UPDATE_URL.lock().unwrap() = response_url;
     } else {
+        #[cfg(feature = "flutter")]
+        {
+            let mut m = HashMap::new();
+            m.insert("name", "check_software_update_finish");
+            m.insert("url", "");
+            if let Ok(data) = serde_json::to_string(&m) {
+                let _ = crate::flutter::push_global_event(crate::flutter::APP_TYPE_MAIN, data);
+            }
+        }
         clear_software_update_url();
     }
     Ok(())
@@ -1182,6 +1191,16 @@ pub async fn do_check_software_update() -> hbb_common::ResultType<()> {
     };
     if result.is_err() {
         clear_software_update_url();
+        #[cfg(feature = "flutter")]
+        {
+            let mut m = HashMap::new();
+            m.insert("name", "check_software_update_finish");
+            m.insert("url", "");
+            m.insert("error", "1");
+            if let Ok(data) = serde_json::to_string(&m) {
+                let _ = crate::flutter::push_global_event(crate::flutter::APP_TYPE_MAIN, data);
+            }
+        }
     }
     result
 }
