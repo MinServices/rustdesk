@@ -1050,10 +1050,12 @@ pub(crate) fn release_id_from_update_url(update_url: &str) -> ResultType<String>
     };
     let segments = segments.collect::<Vec<_>>();
     let release_id = match segments.as_slice() {
+        ["Min9802", "rustdesk", "releases", "tag", release_id] => *release_id,
+        ["Min9802", "rustdesk", "releases", "tag", release_id, ""] => *release_id,
         ["rustdesk", "rustdesk", "releases", "tag", release_id] => *release_id,
         ["rustdesk", "rustdesk", "releases", "tag", release_id, ""] => *release_id,
         _ => bail!(
-            "Update URL is not a RustDesk release tag URL: {}",
+            "Update URL is not a valid release tag URL: {}",
             update_url
         ),
     };
@@ -1103,9 +1105,7 @@ fn clear_software_update_url() {
     *update_url = String::new();
 }
 
-fn process_software_update_check_response(bytes: Bytes) -> ResultType<()> {
-    let resp: hbb_common::VersionCheckResponse = serde_json::from_slice(&bytes)?;
-    let response_url = resp.url;
+pub fn process_software_update_url(response_url: String) -> ResultType<()> {
     let release_id = release_id_from_update_url(&response_url)?;
     let latest_release_version = display_version_from_release_id(&release_id)?;
 
@@ -1126,26 +1126,38 @@ fn process_software_update_check_response(bytes: Bytes) -> ResultType<()> {
     Ok(())
 }
 
-// No need to check `danger_accept_invalid_cert` for now.
-// Because the url is always `https://api.rustdesk.com/version/latest`.
+#[allow(dead_code)]
+fn process_software_update_check_response(bytes: Bytes) -> ResultType<()> {
+    let resp: hbb_common::VersionCheckResponse = serde_json::from_slice(&bytes)?;
+    process_software_update_url(resp.url)
+}
+
 #[tokio::main(flavor = "current_thread")]
 pub async fn do_check_software_update() -> hbb_common::ResultType<()> {
-    let (request, url) =
-        hbb_common::version_check_request(hbb_common::VER_TYPE_RUSTDESK_CLIENT.to_string());
+    const UPDATE_URL: &str = "https://github.com/Min9802/rustdesk/releases/latest";
     let proxy_conf = Config::get_socks();
-    let tls_url = get_url_for_tls(&url, &proxy_conf);
+    let tls_url = get_url_for_tls(UPDATE_URL, &proxy_conf);
     let tls_type = get_cached_tls_type(tls_url);
     let is_tls_not_cached = tls_type.is_none();
     let tls_type = tls_type.unwrap_or(TlsType::Rustls);
     let client = create_http_client_async(tls_type, false);
-    let latest_release_response: ResultType<_> = match client.post(&url).json(&request).send().await
+    let latest_release_response = match client
+        .get(UPDATE_URL)
+        .header(reqwest::header::USER_AGENT, "RustDesk")
+        .send()
+        .await
     {
         Ok(resp) => Ok((tls_type, resp)),
         Err(err) => {
             if is_tls_not_cached && err.is_request() {
                 let tls_type = TlsType::NativeTls;
                 let client = create_http_client_async(tls_type, false);
-                match client.post(&url).json(&request).send().await {
+                match client
+                    .get(UPDATE_URL)
+                    .header(reqwest::header::USER_AGENT, "RustDesk")
+                    .send()
+                    .await
+                {
                     Ok(resp) => Ok((tls_type, resp)),
                     Err(err) => Err(err.into()),
                 }
@@ -1154,21 +1166,20 @@ pub async fn do_check_software_update() -> hbb_common::ResultType<()> {
             }
         }
     };
-    let response_bytes = match latest_release_response {
+    let result = match latest_release_response {
         Ok((used_tls_type, response)) => {
             upsert_tls_cache(tls_url, used_tls_type, false);
-            let status = response.status();
-            if !status.is_success() {
-                Err(anyhow!(
-                    "Software update check failed with HTTP status: {status}"
-                ))
-            } else {
-                response.bytes().await.map_err(|err| err.into())
+            if !response.status().is_success() {
+                bail!(
+                    "Software update check failed with HTTP status: {}",
+                    response.status()
+                );
             }
+            let final_url = response.url().as_str().to_string();
+            process_software_update_url(final_url)
         }
         Err(err) => Err(err),
     };
-    let result = response_bytes.and_then(process_software_update_check_response);
     if result.is_err() {
         clear_software_update_url();
     }
@@ -3057,6 +3068,10 @@ mod tests {
 
         assert_eq!(release_id_from_update_url(update_url).unwrap(), "v1.4.6");
         assert_eq!(display_version_from_release_id("v1.4.6").unwrap(), "1.4.6");
+        assert_eq!(
+            release_id_from_update_url("https://github.com/Min9802/rustdesk/releases/tag/v1.5.2").unwrap(),
+            "v1.5.2"
+        );
         assert_eq!(
             release_id_from_update_url(&format!("{update_url}/")).unwrap(),
             "v1.4.6"
