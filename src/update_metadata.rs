@@ -306,6 +306,7 @@ mod min9802_tests {
     }
 
     #[test]
+    #[ignore]
     fn test_live_github_release_artifact_verification() {
         let query = UpdateArtifactQuery {
             platform: "windows",

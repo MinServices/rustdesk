@@ -106,8 +106,8 @@ pub(super) fn verified_update_artifact_from_release_page_url(
 ) -> ResultType<VerifiedUpdateArtifact> {
     let release_id = release_id_from_update_url(update_url)?;
     let display_version = display_version_from_release_id(&release_id)?;
-    let expected_artifact_url_prefix = if update_url.contains("Min9802/rustdesk") {
-        format!("https://github.com/Min9802/rustdesk/releases/download/{release_id}/")
+    let expected_artifact_url_prefix = if update_url.contains("MinServices/rustdesk") {
+        format!("https://github.com/MinServices/rustdesk/releases/download/{release_id}/")
     } else {
         format!("https://github.com/rustdesk/rustdesk/releases/download/{release_id}/")
     };
@@ -180,7 +180,7 @@ pub fn get_update_download_file_from_url(url: &str) -> Option<PathBuf> {
     let tag = segments.next()?;
     let filename = segments.next()?;
 
-    if (owner != "rustdesk" && owner != "Min9802")
+    if (owner != "rustdesk" && owner != "MinServices")
         || repo != "rustdesk"
         || releases != "releases"
         || download != "download"

@@ -1050,8 +1050,8 @@ pub(crate) fn release_id_from_update_url(update_url: &str) -> ResultType<String>
     };
     let segments = segments.collect::<Vec<_>>();
     let release_id = match segments.as_slice() {
-        ["Min9802", "rustdesk", "releases", "tag", release_id] => *release_id,
-        ["Min9802", "rustdesk", "releases", "tag", release_id, ""] => *release_id,
+        ["MinServices", "rustdesk", "releases", "tag", release_id] => *release_id,
+        ["MinServices", "rustdesk", "releases", "tag", release_id, ""] => *release_id,
         ["rustdesk", "rustdesk", "releases", "tag", release_id] => *release_id,
         ["rustdesk", "rustdesk", "releases", "tag", release_id, ""] => *release_id,
         _ => bail!(
@@ -1143,7 +1143,7 @@ fn process_software_update_check_response(bytes: Bytes) -> ResultType<()> {
 
 #[tokio::main(flavor = "current_thread")]
 pub async fn do_check_software_update() -> hbb_common::ResultType<()> {
-    const UPDATE_URL: &str = "https://github.com/Min9802/rustdesk/releases/latest";
+    const UPDATE_URL: &str = "https://github.com/MinServices/rustdesk/releases/latest";
     let proxy_conf = Config::get_socks();
     let tls_url = get_url_for_tls(UPDATE_URL, &proxy_conf);
     let tls_type = get_cached_tls_type(tls_url);
@@ -3092,7 +3092,7 @@ mod tests {
         assert_eq!(release_id_from_update_url(update_url).unwrap(), "v1.4.6");
         assert_eq!(display_version_from_release_id("v1.4.6").unwrap(), "1.4.6");
         assert_eq!(
-            release_id_from_update_url("https://github.com/Min9802/rustdesk/releases/tag/v1.5.2").unwrap(),
+            release_id_from_update_url("https://github.com/MinServices/rustdesk/releases/tag/v1.5.2").unwrap(),
             "v1.5.2"
         );
         assert_eq!(

@@ -40,7 +40,7 @@ def main():
     parser = argparse.ArgumentParser(description="Generate and sign RustDesk update metadata")
     parser.add_argument("--version", required=True, help="Display version, e.g. 1.5.5")
     parser.add_argument("--release-id", required=True, help="GitHub release tag, e.g. 1.5.5")
-    parser.add_argument("--owner", default="Min9802", help="GitHub repo owner, default: Min9802")
+    parser.add_argument("--owner", default="MinServices", help="GitHub repo owner, default: MinServices")
     parser.add_argument("--repo", default="rustdesk", help="GitHub repo name, default: rustdesk")
     parser.add_argument("--key", default="res/update/min9802_ed25519.key", help="Path to ed25519 private key")
     parser.add_argument("--key-id", default="min9802-ed25519-main", help="Signature key ID")
